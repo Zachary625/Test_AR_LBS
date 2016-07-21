@@ -1,0 +1,23 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2008
+
+Project("{721FFF7D-B5FB-6BC2-E647-5FD78FF9B00E}") = "Test_AR_LBS", "Assembly-CSharp.csproj", "{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Assembly-CSharp.csproj
+	EndGlobalSection
+EndGlobal
