@@ -32,10 +32,23 @@ public class VirtualCameraController : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		this._readGyroscope ();
+		this._updateVirtualCamera ();
 	}
 
-	void _readGyroscope() {
+	void OnGUI() {
+		this._debugGUI ();
+	}
+
+	void _debugGUI() {
+		GUI.Label (new Rect (0, 0, 300, 100), this._getScreenOrientationString ());
+		if (this.gps != null) {
+			GUI.Label (new Rect (0, 100, 300, 100), "latitude: " + this.gps.lastData.latitude);
+			GUI.Label (new Rect (0, 130, 300, 100), "longitude: " +  this.gps.lastData.longitude);
+			GUI.Label (new Rect (0, 160, 300, 100), "altitude: " +  this.gps.lastData.altitude);
+		}
+	}
+
+	void _updateVirtualCamera() {
 		if (this.gyroscope == null) {
 			return;
 		}
@@ -46,41 +59,52 @@ public class VirtualCameraController : MonoBehaviour {
 			return;
 		}
 
-		GameObject cameraSet = this.transform.parent.gameObject;
-		Vector3 cameraSetEulerAngles;
-		if (Screen.orientation == ScreenOrientation.LandscapeLeft) {  
-			cameraSetEulerAngles = new Vector3 (90, 90, 0);
-		} else if (Screen.orientation == ScreenOrientation.Portrait) {  
-			cameraSetEulerAngles = new Vector3 (90, 180, 0);
-		} else if (Screen.orientation == ScreenOrientation.PortraitUpsideDown) {  
-			cameraSetEulerAngles = new Vector3 (90, 180, 0);
-		} else if (Screen.orientation == ScreenOrientation.LandscapeRight) {  
-			cameraSetEulerAngles = new Vector3 (90, 180, 0);
-		} else {  
-			cameraSetEulerAngles = new Vector3 (90, 180, 0);
-		}  
-
-		if (cameraSetEulerAngles != null) {
-			cameraSet.transform.eulerAngles = cameraSetEulerAngles;  
-		}
-
 		Quaternion attitude = this.gyroscope.attitude;
+		LocationInfo locationInfo = this.gps.lastData;
 		Quaternion rotation = attitude;
 		Quaternion rotationFix;
-		if (Screen.orientation == ScreenOrientation.LandscapeLeft) {  
-			rotationFix = new Quaternion (0, 0,0.7071f,0.7071f);  
-		} else if (Screen.orientation == ScreenOrientation.Portrait) {  
-			rotationFix = new Quaternion (0, 0, 1, 0);  
-		} else if (Screen.orientation == ScreenOrientation.PortraitUpsideDown) {  
-			rotationFix = new Quaternion (0, 0, 1, 0);  
-		} else if (Screen.orientation == ScreenOrientation.LandscapeRight) {  
-			rotationFix = new Quaternion (0, 0, 1, 0);  
-		} else {  
-			rotationFix = new Quaternion (0, 0, 1, 0);  
-		}  
 
-		LocationInfo locationInfo = this.gps.lastData;
 
+		GameObject cameraSet = this.transform.parent.gameObject;
+		Vector3 cameraSetEulerAngles;
+
+		cameraSetEulerAngles = new Vector3 (90, 180, 0);
+		rotationFix = new Quaternion (0, 0, 1, 0);  
+
+		cameraSet.transform.eulerAngles = cameraSetEulerAngles;  
 		this.transform.localRotation = rotation * rotationFix;
+	}
+
+	string _getScreenOrientationString() {
+		string result = "";
+		switch (Screen.orientation) {
+			case ScreenOrientation.Portrait: {
+				result = "↑";
+				break;
+			}
+			case ScreenOrientation.PortraitUpsideDown: {
+				result = "↓";
+				break;
+			}
+			case ScreenOrientation.LandscapeLeft: {
+				result = "←";
+				break;
+			}
+			case ScreenOrientation.LandscapeRight: {
+				result = "→";
+				break;
+			}
+			case ScreenOrientation.AutoRotation:
+			{
+				result = "〇";
+				break;
+			}
+			case ScreenOrientation.Unknown:
+			{
+				result = "？";
+				break;
+			}
+		}
+		return result;
 	}
 }
