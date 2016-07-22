@@ -15,7 +15,7 @@ public class VirtualCameraController : MonoBehaviour {
 	private Quaternion gyroRotation;
 	private Quaternion cameraRotation;
 
-	private bool useCompass = false;
+	private bool useCompass = true;
 
 	// Use this for initialization
 	void Start () {
@@ -107,7 +107,7 @@ public class VirtualCameraController : MonoBehaviour {
 		this.gyroRotation = this.baseRotation * this.gyroAttitude * new Quaternion (0, 0, 1, 0);
 		this.transform.localRotation = this.gyroRotation;
 		if (this.useCompass) {
-			this.transform.RotateAround (new Vector3(0,0,0), new Vector3(0,1,0), this.transform.eulerAngles.y - this.compassTrueHeading);
+			this.transform.RotateAround (new Vector3(0,0,0), new Vector3(0,1,0), this.compassTrueHeading - this.transform.eulerAngles.y);
 		}
 
 		this.cameraRotation = this.transform.rotation;
