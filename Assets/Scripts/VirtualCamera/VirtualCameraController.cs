@@ -7,6 +7,16 @@ public class VirtualCameraController : MonoBehaviour {
 	private LocationService gps;
 	private Compass compass;
 
+	private LocationInfo location;
+	private float compassTrueHeading;
+
+	private Quaternion baseRotation = Quaternion.Euler(new Vector3(90, 180, 0));
+	private Quaternion gyroAttitude;
+	private Quaternion gyroRotation;
+	private Quaternion cameraRotation;
+
+	private bool useCompass = false;
+
 	// Use this for initialization
 	void Start () {
 		Debug.Log (" @ VirtualCameraController.Start(): SystemInfo.supportsGyroscope: " + SystemInfo.supportsGyroscope);
@@ -22,6 +32,24 @@ public class VirtualCameraController : MonoBehaviour {
 
 		this.compass = Input.compass;
 		this.compass.enabled = true;
+
+//		GameObject cameraSet = this.transform.parent.gameObject;
+//		Vector3 cameraSetEulerAngles = new Vector3 (90, 180, 0);
+//		cameraSet.transform.eulerAngles = cameraSetEulerAngles;  
+
+		this._startRealCamera ();
+
+	}
+
+	void _startRealCamera() {
+		WebCamTexture webcamTexture = new WebCamTexture ();  
+
+		for (int i = 0; i < WebCamTexture.devices.Length; i++) {  
+			if (!WebCamTexture.devices [i].isFrontFacing) {  
+				webcamTexture.deviceName = WebCamTexture.devices [i].name;  
+				break;  
+			}  
+		}  
 	}
 
 	void Stop() {
@@ -39,40 +67,50 @@ public class VirtualCameraController : MonoBehaviour {
 		this._debugGUI ();
 	}
 
+	string _quaternionToString(Quaternion quaternion) {
+		return "(" + quaternion.x + ", " + quaternion.y + ", " + quaternion.z + ", " + quaternion.w + ")";
+	}
+
 	void _debugGUI() {
-		GUI.Label (new Rect (0, 0, 300, 100), this._getScreenOrientationString ());
-		if (this.gps != null) {
-			GUI.Label (new Rect (0, 100, 300, 100), "latitude: " + this.gps.lastData.latitude);
-			GUI.Label (new Rect (0, 130, 300, 100), "longitude: " +  this.gps.lastData.longitude);
-			GUI.Label (new Rect (0, 160, 300, 100), "altitude: " +  this.gps.lastData.altitude);
+		int height = 30;
+		int row = 0;
+		if(GUI.Button(new Rect(0, height *(row++),100, height), this.useCompass? "front":"north")) {
+			this.useCompass = !this.useCompass;		
 		}
+		GUI.Label (new Rect (0, height *(row++), 500, height), "screen orientation: " + this._getScreenOrientationString());
+		GUI.Label (new Rect (0, height *(row++), 500, height), "heading: " + this.compass.trueHeading);
+
+		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroAttitude: " + this._quaternionToString(this.gyroAttitude));
+
+		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroRotation: " + this._quaternionToString(this.gyroRotation));
+
+		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.gyroRotation));
+
+		GUI.Label (new Rect (0, height *(row++), 500, height), "latitude: " + this.location.latitude);
+		GUI.Label (new Rect (0, height *(row++), 500, height), "longitude: " + this.location.longitude);
+		GUI.Label (new Rect (0, height *(row++), 500, height), "altitude: " + this.location.altitude);
 	}
 
 	void _updateVirtualCamera() {
-		if (this.gyroscope == null) {
-			return;
+		if (this.gyroscope != null) {
+			this.gyroAttitude = this.gyroscope.attitude;
 		}
-		if (this.gps == null) {
-			return;
+		if (this.gps != null) {
+			if(this.gps.status == LocationServiceStatus.Running) {
+				this.location = this.gps.lastData;
+			}
 		}
-		if (this.compass == null) {
-			return;
+		if (this.compass != null) {
+			this.compassTrueHeading = this.compass.trueHeading;
+		}
+			
+		this.gyroRotation = this.baseRotation * this.gyroAttitude * new Quaternion (0, 0, 1, 0);
+		this.transform.localRotation = this.gyroRotation;
+		if (this.useCompass) {
+			this.transform.RotateAround (new Vector3(0,0,0), new Vector3(0,1,0), this.transform.eulerAngles.y - this.compassTrueHeading);
 		}
 
-		Quaternion attitude = this.gyroscope.attitude;
-		LocationInfo locationInfo = this.gps.lastData;
-		Quaternion rotation = attitude;
-		Quaternion rotationFix;
-
-
-		GameObject cameraSet = this.transform.parent.gameObject;
-		Vector3 cameraSetEulerAngles;
-
-		cameraSetEulerAngles = new Vector3 (90, 180, 0);
-		rotationFix = new Quaternion (0, 0, 1, 0);  
-
-		cameraSet.transform.eulerAngles = cameraSetEulerAngles;  
-		this.transform.localRotation = rotation * rotationFix;
+		this.cameraRotation = this.transform.rotation;
 	}
 
 	string _getScreenOrientationString() {
