@@ -74,7 +74,7 @@ public class VirtualCameraController : MonoBehaviour {
 	void _debugGUI() {
 		int height = 30;
 		int row = 0;
-		if(GUI.Button(new Rect(0, height *(row++),100, height), this.useCompass? "front":"north")) {
+		if(GUI.Button(new Rect(0, height *(row++),100, height), this.useCompass? "north":"front")) {
 			this.useCompass = !this.useCompass;		
 		}
 		GUI.Label (new Rect (0, height *(row++), 500, height), "screen orientation: " + this._getScreenOrientationString());
