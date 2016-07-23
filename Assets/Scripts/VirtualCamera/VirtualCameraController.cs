@@ -21,7 +21,10 @@ public class VirtualCameraController : MonoBehaviour {
 	void Start () {
 		Debug.Log (" @ VirtualCameraController.Start(): SystemInfo.supportsGyroscope: " + SystemInfo.supportsGyroscope);
 		Debug.Log (" @ VirtualCameraController.Start(): SystemInfo.supportsLocationService: " + SystemInfo.supportsLocationService);
-		if (SystemInfo.supportsGyroscope) {
+
+        Debug.Log(" @ VirtualCameraController.Start(): (0,0,1,0): " + new Quaternion(0,0,1,0).eulerAngles.ToString());
+
+        if (SystemInfo.supportsGyroscope) {
 			this.gyroscope = Input.gyro;
 			this.gyroscope.enabled = true;
 		}
@@ -105,6 +108,9 @@ public class VirtualCameraController : MonoBehaviour {
 		}
 			
 		this.gyroRotation = this.baseRotation * this.gyroAttitude * new Quaternion (0, 0, 1, 0);
+        
+
+
 		this.transform.localRotation = this.gyroRotation;
 		if (this.useCompass) {
 			this.transform.RotateAround (new Vector3(0,0,0), new Vector3(0,1,0), this.transform.eulerAngles.y - this.compassTrueHeading);
