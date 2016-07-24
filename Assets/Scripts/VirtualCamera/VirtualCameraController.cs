@@ -13,12 +13,20 @@ public class VirtualCameraController : MonoBehaviour {
 	private Quaternion baseRotation = Quaternion.Euler(new Vector3(90, 180, 0));
     private Quaternion fixRotation = new Quaternion(0,0,1,0);
 	private Quaternion gyroAttitude;
+	private Vector3 gyroGravity;
     private Quaternion cameraRotation;
+
+	private bool _reverseX;
+	private bool _reverseY;
+	private bool _reverseZ;
+	private bool _reverseRotation;
+	private bool _compassAndGravity;
 
     private enum _RotationMethod
     {
-        Gyro,
-		GyroCompass,
+        Attitude,
+		GravityAndHeading1,
+		GravityAndHeading2,
 		Length,
     }
 
@@ -89,26 +97,26 @@ public class VirtualCameraController : MonoBehaviour {
             this.rotationMethod = (_RotationMethod)(((int)(this.rotationMethod + 1)) % ((int)(_RotationMethod.Length)));
 		}
 
+		this._reverseX = GUI.Toggle (new Rect (0, height * (row++), 200, height), this._reverseX, "reverse x");
+		this._reverseY = GUI.Toggle (new Rect (0, height * (row++), 200, height), this._reverseY, "reverse y");
+		this._reverseZ = GUI.Toggle (new Rect (0, height * (row++), 200, height), this._reverseZ, "reverse z");
+		this._reverseRotation = GUI.Toggle (new Rect (0, height * (row++), 200, height), this._reverseRotation, "reverse rotation");
+		this._compassAndGravity = GUI.Toggle (new Rect (0, height * (row++), 200, height), this._compassAndGravity, "compass * gravity");
+
 		GUI.Label (new Rect (0, height *(row++), 500, height), "screen orientation: " + this._getScreenOrientationString());
 		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
 
 		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroAttitude: " + this._quaternionToString(this.gyroAttitude));
-
-		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroAttitude.eulerAngles: " + (this.gyroAttitude.eulerAngles.ToString()));
+		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroGravity: " + (this.gyroGravity.ToString()));
 
 		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.cameraRotation));
-		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation.eulerAngles: " + (this.cameraRotation.eulerAngles.ToString()));
 
-		/*
-		GUI.Label (new Rect (0, height *(row++), 500, height), "latitude: " + this.location.latitude);
-		GUI.Label (new Rect (0, height *(row++), 500, height), "longitude: " + this.location.longitude);
-		GUI.Label (new Rect (0, height *(row++), 500, height), "altitude: " + this.location.altitude);
-        */
-	}
+}
 
 	void _updateVirtualCamera() {
 		if (this.gyroscope != null) {
 			this.gyroAttitude = this.gyroscope.attitude;
+			this.gyroGravity = this.gyroscope.gravity;
 		}
 		if (this.gps != null) {
 			if(this.gps.status == LocationServiceStatus.Running) {
@@ -120,23 +128,34 @@ public class VirtualCameraController : MonoBehaviour {
 		}
 
 		switch (this.rotationMethod) {
-		case _RotationMethod.Gyro:
+		case _RotationMethod.Attitude:
 			{
 				this.cameraRotation = this.baseRotation * this.gyroAttitude * this.fixRotation;
 				this.transform.localRotation = this.cameraRotation;
 				break;
 			}
 			break;
-		case _RotationMethod.GyroCompass: 
+		case _RotationMethod.GravityAndHeading1: 
 			{
-				this.cameraRotation = this.baseRotation * this.gyroAttitude * this.fixRotation;
+				Quaternion compassRotation = Quaternion.AngleAxis (this.compassTrueHeading, Vector3.up);
+
+				if (this._reverseX) {
+					this.gyroGravity.x *= -1;
+				}
+				if (this._reverseY) {
+					this.gyroGravity.y *= -1;
+				}
+				if (this._reverseZ) {
+					this.gyroGravity.z *= -1;
+				}
+				Quaternion gravityRotation = this._reverseRotation? Quaternion.FromToRotation(this.gyroGravity, Vector3.down): Quaternion.FromToRotation (Vector3.down, this.gyroGravity);
+				this.cameraRotation = this._compassAndGravity? compassRotation * gravityRotation: gravityRotation * compassRotation;
 				this.transform.localRotation = this.cameraRotation;
 
-				Debug.Log ("up: " + this.transform.up.ToString());
-				Debug.Log ("forward: " + this.transform.forward.ToString());
-
-//				this.transform.RotateAround (Vector3.zero, Vector3.up, this.compassTrueHeading - gyroY);
-
+				break;
+			}
+		case _RotationMethod.GravityAndHeading2:
+			{
 				break;
 			}
 		}
