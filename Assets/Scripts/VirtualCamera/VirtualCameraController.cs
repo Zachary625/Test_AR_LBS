@@ -11,17 +11,28 @@ public class VirtualCameraController : MonoBehaviour {
 	private float compassTrueHeading;
 
 	private Quaternion baseRotation = Quaternion.Euler(new Vector3(90, 180, 0));
+    private Quaternion fixRotation = new Quaternion(0,0,1,0);
 	private Quaternion gyroAttitude;
-	private Quaternion gyroRotation;
-	private Quaternion cameraRotation;
+    private Quaternion cameraRotation;
 
-	private bool useCompass = true;
+    private enum _RotationMethod
+    {
+        BaseGyro,
+        BaseCompassGyro,
+        CompassBaseGyro,
+        Length,
+    }
+
+    private _RotationMethod rotationMethod;
 
 	// Use this for initialization
 	void Start () {
 		Debug.Log (" @ VirtualCameraController.Start(): SystemInfo.supportsGyroscope: " + SystemInfo.supportsGyroscope);
 		Debug.Log (" @ VirtualCameraController.Start(): SystemInfo.supportsLocationService: " + SystemInfo.supportsLocationService);
-		if (SystemInfo.supportsGyroscope) {
+
+        Debug.Log(" @ VirtualCameraController.Start(): (0,0,1,0): " + new Quaternion(0,0,1,0).eulerAngles.ToString());
+
+        if (SystemInfo.supportsGyroscope) {
 			this.gyroscope = Input.gyro;
 			this.gyroscope.enabled = true;
 		}
@@ -74,21 +85,22 @@ public class VirtualCameraController : MonoBehaviour {
 	void _debugGUI() {
 		int height = 30;
 		int row = 0;
-		if(GUI.Button(new Rect(0, height *(row++),100, height), this.useCompass? "front":"north")) {
-			this.useCompass = !this.useCompass;		
+
+		if(GUI.Button(new Rect(0, height *(row++),200, height), this.rotationMethod.ToString())) {
+            this.rotationMethod = (_RotationMethod)(((int)(this.rotationMethod + 1)) % ((int)(_RotationMethod.Length)));
 		}
+
 		GUI.Label (new Rect (0, height *(row++), 500, height), "screen orientation: " + this._getScreenOrientationString());
-		GUI.Label (new Rect (0, height *(row++), 500, height), "heading: " + this.compass.trueHeading);
+		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
 
 		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroAttitude: " + this._quaternionToString(this.gyroAttitude));
 
-		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroRotation: " + this._quaternionToString(this.gyroRotation));
-
-		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.gyroRotation));
-
+		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.cameraRotation));
+        /*
 		GUI.Label (new Rect (0, height *(row++), 500, height), "latitude: " + this.location.latitude);
 		GUI.Label (new Rect (0, height *(row++), 500, height), "longitude: " + this.location.longitude);
 		GUI.Label (new Rect (0, height *(row++), 500, height), "altitude: " + this.location.altitude);
+        */
 	}
 
 	void _updateVirtualCamera() {
@@ -103,14 +115,28 @@ public class VirtualCameraController : MonoBehaviour {
 		if (this.compass != null) {
 			this.compassTrueHeading = this.compass.trueHeading;
 		}
-			
-		this.gyroRotation = this.baseRotation * this.gyroAttitude * new Quaternion (0, 0, 1, 0);
-		this.transform.localRotation = this.gyroRotation;
-		if (this.useCompass) {
-			this.transform.RotateAround (new Vector3(0,0,0), new Vector3(0,1,0), this.compassTrueHeading - this.transform.eulerAngles.y);
-		}
 
-		this.cameraRotation = this.transform.rotation;
+        switch (this.rotationMethod) {
+            case _RotationMethod.BaseGyro:
+                {
+                    this.cameraRotation = this.baseRotation * this.gyroAttitude * this.fixRotation;
+                    this.transform.localRotation = this.cameraRotation;
+                    break;
+                }
+            case _RotationMethod.CompassBaseGyro:
+                {
+                    Quaternion compassRotation = Quaternion.AngleAxis(-this.compassTrueHeading, Vector3.up);
+                    this.cameraRotation = compassRotation * this.baseRotation * this.gyroAttitude * this.fixRotation;
+                    this.transform.localRotation = this.cameraRotation;
+                    break;
+                }
+            case _RotationMethod.BaseCompassGyro: {
+                    Quaternion compassRotation = Quaternion.AngleAxis(-this.compassTrueHeading, Vector3.up);
+                    this.cameraRotation = this.baseRotation * compassRotation * this.gyroAttitude * this.fixRotation;
+                    this.transform.localRotation = this.cameraRotation;
+                    break;
+                }
+        }
 	}
 
 	string _getScreenOrientationString() {
