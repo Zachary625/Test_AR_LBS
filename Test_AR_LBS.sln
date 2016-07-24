@@ -1,7 +1,7 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2015
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_AR_LBS.CSharp", "Test_AR_LBS.CSharp.csproj", "{F8D20B31-EDBC-5A33-04DF-E4DE419CD604}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2008
+
+Project("{721FFF7D-B5FB-6BC2-E647-5FD78FF9B00E}") = "Test_AR_LBS", "Assembly-CSharp.csproj", "{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,12 +9,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F8D20B31-EDBC-5A33-04DF-E4DE419CD604}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F8D20B31-EDBC-5A33-04DF-E4DE419CD604}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F8D20B31-EDBC-5A33-04DF-E4DE419CD604}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F8D20B31-EDBC-5A33-04DF-E4DE419CD604}.Release|Any CPU.Build.0 = Release|Any CPU
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{759C900E-B8E9-BAC7-CFB2-BD6304D15FD6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Assembly-CSharp.csproj
 	EndGlobalSection
 EndGlobal
