@@ -58,7 +58,7 @@ public class VirtualCameraController : MonoBehaviour {
 
 	}
 
-	void _stopReadCamera() {
+	void _stopRealCamera() {
 		if (this.webCamTexture != null) {
 			if (this.webCamTexture.isPlaying) {
 				this.webCamTexture.Stop ();
@@ -75,7 +75,7 @@ public class VirtualCameraController : MonoBehaviour {
 			return;
 		}
 
-		this._stopReadCamera ();
+		this._stopRealCamera();
 
 		for (int i = 0; i < WebCamTexture.devices.Length; i++) {  
 			if (!WebCamTexture.devices [i].isFrontFacing) {  
@@ -98,11 +98,14 @@ public class VirtualCameraController : MonoBehaviour {
 		if (this.gps != null) {
 			this.gps.Stop ();
 		}
+
+        this._stopRealCamera();
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		this._updateVirtualCamera ();
+        this._updateRealCamera();
 	}
 
 	void OnGUI() {
@@ -162,6 +165,30 @@ public class VirtualCameraController : MonoBehaviour {
             }
 		}
 	}
+
+    void _updateRealCamera() {
+        if (this.webCamTexture == null) {
+            return;
+        }
+        if(this.WebCamImage == null)
+        {
+            return;
+        }
+
+        int videoRotationAngle = this.webCamTexture.videoRotationAngle;
+        Debug.Log(" @ VirtualCameraController._updateRealCamera(): videoRotationAngle: " + videoRotationAngle);
+
+        this.WebCamImage.rectTransform.localRotation = Quaternion.AngleAxis(videoRotationAngle, Vector3.forward);
+        if (videoRotationAngle % 180 == 90)
+        {
+            Camera camera = this.GetComponent<Camera>();
+            this.WebCamImage.rectTransform.localScale = new Vector3(1 / camera.aspect / camera.aspect, camera.aspect * camera.aspect, 1);
+        }
+        else {
+            this.WebCamImage.rectTransform.localScale = Vector3.one;
+        }
+
+    }
 
 	string _getScreenOrientationString() {
 		string result = "";
