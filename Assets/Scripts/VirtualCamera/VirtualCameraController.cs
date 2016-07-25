@@ -17,6 +17,9 @@ public class VirtualCameraController : MonoBehaviour {
 	private Vector3 gyroGravity;
     private Quaternion cameraRotation;
 
+	public UnityEngine.UI.Image WebCamImage;
+	private WebCamTexture webCamTexture;
+
     private enum _RotationMethod
     {
         Attitude,
@@ -55,15 +58,40 @@ public class VirtualCameraController : MonoBehaviour {
 
 	}
 
+	void _stopReadCamera() {
+		if (this.webCamTexture != null) {
+			if (this.webCamTexture.isPlaying) {
+				this.webCamTexture.Stop ();
+			}
+			this.webCamTexture = null;
+		}
+		if (this.WebCamImage != null) {
+			this.WebCamImage.material.color = Color.black;
+		}
+	}
+
 	void _startRealCamera() {
-		WebCamTexture webcamTexture = new WebCamTexture ();  
+		if (this.WebCamImage == null) {
+			return;
+		}
+
+		this._stopReadCamera ();
 
 		for (int i = 0; i < WebCamTexture.devices.Length; i++) {  
 			if (!WebCamTexture.devices [i].isFrontFacing) {  
-				webcamTexture.deviceName = WebCamTexture.devices [i].name;  
+				this.webCamTexture = new WebCamTexture ();
+				this.webCamTexture.deviceName = WebCamTexture.devices [i].name;  
+				Debug.Log (" @ VirtualCameraController: found camera: " + this.webCamTexture.deviceName);
 				break;  
 			}  
 		}  
+		if (this.webCamTexture == null) {
+			return;
+		}
+
+		this.WebCamImage.material.color = Color.white;
+		this.WebCamImage.material.mainTexture = this.webCamTexture;
+		this.webCamTexture.Play ();
 	}
 
 	void Stop() {
