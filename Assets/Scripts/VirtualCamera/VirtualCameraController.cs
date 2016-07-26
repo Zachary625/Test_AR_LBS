@@ -11,6 +11,10 @@ public class VirtualCameraController : MonoBehaviour {
 	private float compassTrueHeading;
     private Vector3 compassRawVector;
 
+	private Vector3 acceleration;
+	private Vector3 velocity;
+	private Vector3 displacement;
+
 	private Quaternion baseRotation = Quaternion.Euler(new Vector3(90, 180, 0));
     private Quaternion fixRotation = new Quaternion(0,0,1,0);
 	private Quaternion gyroAttitude;
@@ -20,6 +24,9 @@ public class VirtualCameraController : MonoBehaviour {
 	public UnityEngine.UI.Image WebCamImage;
 	private WebCamTexture webCamTexture;
 
+	public float AccelerationThreshold = 0.01f;
+	public float VelocityThreshold = 0.001f;
+
     private enum _RotationMethod
     {
         Attitude,
@@ -27,10 +34,18 @@ public class VirtualCameraController : MonoBehaviour {
 		Length,
     }
 
-    private _RotationMethod rotationMethod;
+	private enum _DisplacementMethod
+	{
+		Basic,
+		AccEvents,
+		Length,
+	}
 
-	private bool _useDisplacement = false;
-	private bool _useWebCam = false;
+    private _RotationMethod rotationMethod;
+	private _DisplacementMethod displacementMethod;
+
+	private bool _useDisplacement = true;
+	private bool _useWebCam = true;
 
 	// Use this for initialization
 	void Start () {
@@ -127,13 +142,18 @@ public class VirtualCameraController : MonoBehaviour {
 		return "(" + quaternion.x + ", " + quaternion.y + ", " + quaternion.z + ", " + quaternion.w + ")";
 	}
 
+	string _vector3ToString(Vector3 vector3) {
+		return "(" + vector3.x + ", " + vector3.y + ", " + vector3.z + ")";
+	}
+
 	void _debugGUI() {
 		int height = 30;
 		int row = 0;
 
-		if(GUI.Button(new Rect(0, height *(row++),200, height), this.rotationMethod.ToString())) {
-            this.rotationMethod = (_RotationMethod)(((int)(this.rotationMethod + 1)) % ((int)(_RotationMethod.Length)));
-		}
+//		if(GUI.Button(new Rect(0, height *(row++),200, height), this.rotationMethod.ToString())) {
+//            this.rotationMethod = (_RotationMethod)(((int)(this.rotationMethod + 1)) % ((int)(_RotationMethod.Length)));
+//		}
+
 		if(GUI.Button(new Rect(0, height *(row++),200, height), "AR: " + this._useWebCam)) {
 			this._useWebCam = !this._useWebCam;
 			if (this._useWebCam) {
@@ -146,17 +166,31 @@ public class VirtualCameraController : MonoBehaviour {
 			this._useDisplacement = !this._useDisplacement;
 		}
 
-		GUI.Label (new Rect (0, height *(row++), 500, height), "screen orientation: " + this._getScreenOrientationString());
+		if (this._useDisplacement) {
+			if(GUI.Button(new Rect(0, height *(row++),200, height), this.displacementMethod.ToString())) {
+				this.acceleration = Vector3.zero;
+				this.velocity = Vector3.zero;
+				this.displacement = Vector3.zero;
+				this.displacementMethod = (_DisplacementMethod)(((int)(this.displacementMethod + 1)) % ((int)(_DisplacementMethod.Length)));
+			}
+		}
+
+//		GUI.Label (new Rect (0, height *(row++), 500, height), "screen orientation: " + this._getScreenOrientationString());
+//
+//
+//        GUI.Label (new Rect (0, height *(row++), 500, height), "gyroAttitude: " + this._quaternionToString(this.gyroAttitude));
+//		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroGravity: " + this._vector3ToString(this.gyroGravity));
+
+//		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
+//		GUI.Label (new Rect(0, height * (row++), 500, height), "compassRawVector: " + this.compassRawVector);
+
+		GUI.Label (new Rect(0, height * (row++), 500, height), "acceleration: " + this._vector3ToString(this.acceleration));
+		GUI.Label (new Rect(0, height * (row++), 500, height), "velocity: " + this._vector3ToString(this.velocity));
+		GUI.Label (new Rect(0, height * (row++), 500, height), "displacement: " + this._vector3ToString(this.displacement));
 
 
-        GUI.Label (new Rect (0, height *(row++), 500, height), "gyroAttitude: " + this._quaternionToString(this.gyroAttitude));
-		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroGravity: " + (this.gyroGravity.ToString()));
-
-		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
-		GUI.Label (new Rect(0, height * (row++), 500, height), "compassRawVector: " + this.compassRawVector);
-
-		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.cameraRotation));
-
+//		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.cameraRotation));
+//
 	}
 
 	void _updateVirtualCamera() {
@@ -172,6 +206,40 @@ public class VirtualCameraController : MonoBehaviour {
 		if (this.compass != null) {
 			this.compassTrueHeading = this.compass.trueHeading;
             this.compassRawVector = this.compass.rawVector;
+		}
+		if (SystemInfo.supportsAccelerometer && this._useDisplacement) {
+			switch (this.displacementMethod) {
+			case _DisplacementMethod.Basic:
+				{
+					this.acceleration = Input.acceleration;
+					this.acceleration -= this.gyroGravity.normalized;
+					if (this.acceleration.magnitude > this.AccelerationThreshold) {
+						this.velocity += this.acceleration * Time.deltaTime;
+					}
+					if (this.velocity.magnitude > this.VelocityThreshold) {
+						this.displacement += this.velocity * Time.deltaTime;
+					}
+					break;
+				}
+			case _DisplacementMethod.AccEvents:
+				{
+					this.acceleration = Vector3.zero;
+					AccelerationEvent[] accelerationEvents = Input.accelerationEvents;
+					float deltaTime = 0;
+					foreach (AccelerationEvent accelerationEvent in accelerationEvents) {
+						this.acceleration = accelerationEvent.acceleration;
+						this.acceleration -= this.gyroGravity.normalized;
+						if (this.acceleration.magnitude > this.AccelerationThreshold) {
+							this.velocity += this.acceleration * accelerationEvent.deltaTime;
+						}
+						if (this.velocity.magnitude > this.VelocityThreshold) {
+							this.displacement += this.velocity * accelerationEvent.deltaTime;
+						}
+
+					}
+					break;
+				}
+			}
 		}
 
 		switch (this.rotationMethod) {
@@ -191,6 +259,8 @@ public class VirtualCameraController : MonoBehaviour {
 				break;
 			}
 		}
+
+		this.transform.localPosition = this.displacement;
 	}
 
     void _updateRealCamera() {
