@@ -23,20 +23,19 @@ public class VirtualCameraController : MonoBehaviour {
     private enum _RotationMethod
     {
         Attitude,
-		GravityAndHeading1,
-		GravityAndHeading2,
-        GravityAndRawVector,
+		AttitudeAndTrueHeading,
 		Length,
     }
 
     private _RotationMethod rotationMethod;
 
+	private bool _useDisplacement = false;
+	private bool _useWebCam = false;
+
 	// Use this for initialization
 	void Start () {
 		Debug.Log (" @ VirtualCameraController.Start(): SystemInfo.supportsGyroscope: " + SystemInfo.supportsGyroscope);
 		Debug.Log (" @ VirtualCameraController.Start(): SystemInfo.supportsLocationService: " + SystemInfo.supportsLocationService);
-
-        Debug.Log(" @ VirtualCameraController.Start(): (0,0,1,0): " + new Quaternion(0,0,1,0).eulerAngles.ToString());
 
         if (SystemInfo.supportsGyroscope) {
 			this.gyroscope = Input.gyro;
@@ -50,15 +49,26 @@ public class VirtualCameraController : MonoBehaviour {
 		this.compass = Input.compass;
 		this.compass.enabled = true;
 
-//		GameObject cameraSet = this.transform.parent.gameObject;
-//		Vector3 cameraSetEulerAngles = new Vector3 (90, 180, 0);
-//		cameraSet.transform.eulerAngles = cameraSetEulerAngles;  
-
-		this._startRealCamera ();
-
+		this._enableWebCam ();
 	}
 
-	void _stopRealCamera() {
+	void _showWebCam() {
+		if (this.WebCamImage == null) {
+			return;
+		}
+
+		this.WebCamImage.enabled = true;
+	}
+
+	void _hideWebCam() {
+		if (this.WebCamImage == null) {
+			return;
+		}
+
+		this.WebCamImage.enabled = false;
+	}
+
+	void _disableWebCam() {
 		if (this.webCamTexture != null) {
 			if (this.webCamTexture.isPlaying) {
 				this.webCamTexture.Stop ();
@@ -70,12 +80,12 @@ public class VirtualCameraController : MonoBehaviour {
 		}
 	}
 
-	void _startRealCamera() {
+	void _enableWebCam() {
+		this._disableWebCam();
+
 		if (this.WebCamImage == null) {
 			return;
 		}
-
-		this._stopRealCamera();
 
 		for (int i = 0; i < WebCamTexture.devices.Length; i++) {  
 			if (!WebCamTexture.devices [i].isFrontFacing) {  
@@ -99,13 +109,14 @@ public class VirtualCameraController : MonoBehaviour {
 			this.gps.Stop ();
 		}
 
-        this._stopRealCamera();
+		this._disableWebCam();
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		this._updateVirtualCamera ();
-        this._updateRealCamera();
+
+		this._updateRealCamera();
 	}
 
 	void OnGUI() {
@@ -123,17 +134,30 @@ public class VirtualCameraController : MonoBehaviour {
 		if(GUI.Button(new Rect(0, height *(row++),200, height), this.rotationMethod.ToString())) {
             this.rotationMethod = (_RotationMethod)(((int)(this.rotationMethod + 1)) % ((int)(_RotationMethod.Length)));
 		}
+		if(GUI.Button(new Rect(0, height *(row++),200, height), "AR: " + this._useWebCam)) {
+			this._useWebCam = !this._useWebCam;
+			if (this._useWebCam) {
+				this._showWebCam ();
+			} else {
+				this._hideWebCam ();
+			}
+		}
+		if(GUI.Button(new Rect(0, height *(row++),200, height), "D: " + this._useDisplacement)) {
+			this._useDisplacement = !this._useDisplacement;
+		}
 
 		GUI.Label (new Rect (0, height *(row++), 500, height), "screen orientation: " + this._getScreenOrientationString());
-		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
-        GUI.Label(new Rect(0, height * (row++), 500, height), "compassRawVector: " + this.compassRawVector);
+
 
         GUI.Label (new Rect (0, height *(row++), 500, height), "gyroAttitude: " + this._quaternionToString(this.gyroAttitude));
 		GUI.Label (new Rect (0, height *(row++), 500, height), "gyroGravity: " + (this.gyroGravity.ToString()));
 
+		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
+		GUI.Label (new Rect(0, height * (row++), 500, height), "compassRawVector: " + this.compassRawVector);
+
 		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.cameraRotation));
 
-}
+	}
 
 	void _updateVirtualCamera() {
 		if (this.gyroscope != null) {
@@ -157,12 +181,15 @@ public class VirtualCameraController : MonoBehaviour {
 				this.transform.localRotation = this.cameraRotation;
 				break;
 			}
-        case _RotationMethod.GravityAndRawVector:
-            {
-                this.cameraRotation = Quaternion.LookRotation(-this.compassRawVector, -this.gyroGravity);
-                this.transform.localRotation = this.cameraRotation;
-                break;
-            }
+		case _RotationMethod.AttitudeAndTrueHeading:
+			{
+				Quaternion gyroRotation = this.baseRotation * this.gyroAttitude * this.fixRotation;
+				Vector3 cameraEuler = this.cameraRotation.eulerAngles;
+				cameraEuler.y = this.compassTrueHeading;
+				this.cameraRotation = Quaternion.Euler (cameraEuler);
+				this.transform.localRotation = this.cameraRotation;
+				break;
+			}
 		}
 	}
 
