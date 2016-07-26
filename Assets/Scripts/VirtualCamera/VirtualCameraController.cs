@@ -176,17 +176,25 @@ public class VirtualCameraController : MonoBehaviour {
         }
 
         int videoRotationAngle = this.webCamTexture.videoRotationAngle;
-        Debug.Log(" @ VirtualCameraController._updateRealCamera(): videoRotationAngle: " + videoRotationAngle);
+		bool videoVerticallyMirrored = this.webCamTexture.videoVerticallyMirrored;
+		Debug.Log(" @ VirtualCameraController._updateRealCamera(): videoRotationAngle: " + videoRotationAngle);
+		Debug.Log(" @ VirtualCameraController._updateRealCamera(): videoVerticallyMirrored: " + videoVerticallyMirrored);
 
-        this.WebCamImage.rectTransform.localRotation = Quaternion.AngleAxis(videoRotationAngle, Vector3.forward);
-        if (videoRotationAngle % 180 == 90)
+		int xScaleFactor = videoVerticallyMirrored ? -1 : 1;
+
+		var webCamAspect = ((float)this.webCamTexture.width) / ((float)this.webCamTexture.height);
+		if (videoRotationAngle % 180 == 90)
         {
             Camera camera = this.GetComponent<Camera>();
-            this.WebCamImage.rectTransform.localScale = new Vector3(1 / camera.aspect / camera.aspect, camera.aspect * camera.aspect, 1);
+			Debug.Log (" @ VirtualCameraController._updateRealCamera(): camera.aspect: " + camera.aspect);
+			this.WebCamImage.rectTransform.localScale = new Vector3(xScaleFactor / camera.aspect / webCamAspect, camera.aspect * webCamAspect , 1);
+			Debug.Log (" @ VirtualCameraController._updateRealCamera(): localScale: " + this.WebCamImage.rectTransform.localScale.ToString());
         }
         else {
-            this.WebCamImage.rectTransform.localScale = Vector3.one;
+			this.WebCamImage.rectTransform.localScale = new Vector3(xScaleFactor / webCamAspect, 1 * webCamAspect, 1);
         }
+
+		this.WebCamImage.rectTransform.localRotation = Quaternion.AngleAxis(videoRotationAngle, Vector3.forward);
 
     }
 
