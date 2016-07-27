@@ -215,9 +215,14 @@ public class VirtualCameraController : MonoBehaviour {
 					this.acceleration -= this.gyroGravity.normalized;
 					if (this.acceleration.magnitude > this.AccelerationThreshold) {
 						this.velocity += this.acceleration * Time.deltaTime;
+					} else {
+						this.acceleration = Vector3.zero;
 					}
+
 					if (this.velocity.magnitude > this.VelocityThreshold) {
 						this.displacement += this.velocity * Time.deltaTime;
+					} else {
+						this.velocity = Vector3.zero;
 					}
 					break;
 				}
@@ -231,9 +236,13 @@ public class VirtualCameraController : MonoBehaviour {
 						this.acceleration -= this.gyroGravity.normalized;
 						if (this.acceleration.magnitude > this.AccelerationThreshold) {
 							this.velocity += this.acceleration * accelerationEvent.deltaTime;
+						} else {
+							this.acceleration = Vector3.zero;
 						}
 						if (this.velocity.magnitude > this.VelocityThreshold) {
 							this.displacement += this.velocity * accelerationEvent.deltaTime;
+						} else {
+							this.velocity = Vector3.zero;
 						}
 
 					}
