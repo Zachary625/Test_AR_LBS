@@ -15,6 +15,24 @@ public class VirtualCameraController : MonoBehaviour {
 	private Vector3 velocity;
 	private Vector3 displacement;
 
+	public Vector3 Acceleration {
+		get {
+			return this.acceleration;
+		}
+	}
+
+	public Vector3 Velocity {
+		get {
+			return this.velocity;
+		}
+	}
+
+	public Vector3 Displacement {
+		get {
+			return this.displacement;
+		}
+	}
+
 	private Quaternion baseRotation = Quaternion.Euler(new Vector3(90, 180, 0));
     private Quaternion fixRotation = new Quaternion(0,0,1,0);
 	private Quaternion gyroAttitude;
@@ -24,8 +42,8 @@ public class VirtualCameraController : MonoBehaviour {
 	public UnityEngine.UI.Image WebCamImage;
 	private WebCamTexture webCamTexture;
 
-	public float AccelerationThreshold = 0.01f;
-	public float VelocityThreshold = 0.001f;
+	public float AccelerationThreshold = 0.003f;
+	public float VelocityThreshold = 0.003f;
 
     private enum _RotationMethod
     {
@@ -34,15 +52,17 @@ public class VirtualCameraController : MonoBehaviour {
 		Length,
     }
 
-	private enum _DisplacementMethod
+	private enum _AccelerationDataSource
 	{
-		Basic,
-		AccEvents,
+		Value,
+		Events,
 		Length,
 	}
 
+	private bool _useAvg = true;
+
     private _RotationMethod rotationMethod;
-	private _DisplacementMethod displacementMethod;
+	private _AccelerationDataSource accelerationDataSource;
 
 	private bool _useDisplacement = true;
 	private bool _useWebCam = true;
@@ -163,15 +183,18 @@ public class VirtualCameraController : MonoBehaviour {
 			}
 		}
 		if(GUI.Button(new Rect(0, height *(row++),200, height), "D: " + this._useDisplacement)) {
+			this.acceleration = Vector3.zero;
+			this.velocity = Vector3.zero;
+			this.displacement = Vector3.zero;
 			this._useDisplacement = !this._useDisplacement;
 		}
 
 		if (this._useDisplacement) {
-			if(GUI.Button(new Rect(0, height *(row++),200, height), this.displacementMethod.ToString())) {
+			if(GUI.Button(new Rect(0, height *(row++),200, height), this.accelerationDataSource.ToString())) {
 				this.acceleration = Vector3.zero;
 				this.velocity = Vector3.zero;
 				this.displacement = Vector3.zero;
-				this.displacementMethod = (_DisplacementMethod)(((int)(this.displacementMethod + 1)) % ((int)(_DisplacementMethod.Length)));
+				this.accelerationDataSource = (_AccelerationDataSource)(((int)(this.accelerationDataSource + 1)) % ((int)(_AccelerationDataSource.Length)));
 			}
 		}
 
@@ -184,9 +207,23 @@ public class VirtualCameraController : MonoBehaviour {
 //		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
 //		GUI.Label (new Rect(0, height * (row++), 500, height), "compassRawVector: " + this.compassRawVector);
 
-		GUI.Label (new Rect(0, height * (row++), 500, height), "acceleration: " + this._vector3ToString(this.acceleration));
-		GUI.Label (new Rect(0, height * (row++), 500, height), "velocity: " + this._vector3ToString(this.velocity));
-		GUI.Label (new Rect(0, height * (row++), 500, height), "displacement: " + this._vector3ToString(this.displacement));
+		if (this.acceleration != Vector3.zero) {
+			GUI.Label (new Rect (0, height * (row++), 500, height), "a: " + this.acceleration.magnitude + ": " + this._vector3ToString (this.acceleration));
+		} else {
+			GUI.Label (new Rect (0, height * (row++), 500, height), "NO A!!!");
+		}
+
+		if (this.velocity != Vector3.zero) {
+			GUI.Label (new Rect (0, height * (row++), 500, height), "v: " + this.velocity.magnitude + ": " + this._vector3ToString (this.velocity));
+		} else {
+			GUI.Label (new Rect (0, height * (row++), 500, height), "NO V!!!");
+		}
+
+		if (this.displacement != Vector3.zero) {
+			GUI.Label (new Rect(0, height * (row++), 500, height), "d: "+ this.displacement.magnitude + ": " + this._vector3ToString(this.displacement));
+		} else {
+			GUI.Label (new Rect (0, height * (row++), 500, height), "NO D!!!");
+		}
 
 
 //		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.cameraRotation));
@@ -194,6 +231,13 @@ public class VirtualCameraController : MonoBehaviour {
 	}
 
 	void _updateVirtualCamera() {
+		this._updateSensorData ();
+
+		this._updateRotation ();
+		this._updateLocation ();
+	}
+
+	void _updateSensorData() {
 		if (this.gyroscope != null) {
 			this.gyroAttitude = this.gyroscope.attitude;
 			this.gyroGravity = this.gyroscope.gravity;
@@ -205,52 +249,11 @@ public class VirtualCameraController : MonoBehaviour {
 		}
 		if (this.compass != null) {
 			this.compassTrueHeading = this.compass.trueHeading;
-            this.compassRawVector = this.compass.rawVector;
+			this.compassRawVector = this.compass.rawVector;
 		}
-		if (SystemInfo.supportsAccelerometer && this._useDisplacement) {
-			switch (this.displacementMethod) {
-			case _DisplacementMethod.Basic:
-				{
-					this.acceleration = Input.acceleration;
-					this.acceleration -= this.gyroGravity.normalized;
-					if (this.acceleration.magnitude > this.AccelerationThreshold) {
-						this.velocity += this.acceleration * Time.deltaTime;
-					} else {
-						this.acceleration = Vector3.zero;
-					}
+	}
 
-					if (this.velocity.magnitude > this.VelocityThreshold) {
-						this.displacement += this.velocity * Time.deltaTime;
-					} else {
-						this.velocity = Vector3.zero;
-					}
-					break;
-				}
-			case _DisplacementMethod.AccEvents:
-				{
-					this.acceleration = Vector3.zero;
-					AccelerationEvent[] accelerationEvents = Input.accelerationEvents;
-					float deltaTime = 0;
-					foreach (AccelerationEvent accelerationEvent in accelerationEvents) {
-						this.acceleration = accelerationEvent.acceleration;
-						this.acceleration -= this.gyroGravity.normalized;
-						if (this.acceleration.magnitude > this.AccelerationThreshold) {
-							this.velocity += this.acceleration * accelerationEvent.deltaTime;
-						} else {
-							this.acceleration = Vector3.zero;
-						}
-						if (this.velocity.magnitude > this.VelocityThreshold) {
-							this.displacement += this.velocity * accelerationEvent.deltaTime;
-						} else {
-							this.velocity = Vector3.zero;
-						}
-
-					}
-					break;
-				}
-			}
-		}
-
+	void _updateRotation() {
 		switch (this.rotationMethod) {
 		case _RotationMethod.Attitude:
 			{
@@ -268,8 +271,60 @@ public class VirtualCameraController : MonoBehaviour {
 				break;
 			}
 		}
+	}
 
+	void _updateLocation() {
+		if (SystemInfo.supportsAccelerometer && this._useDisplacement) {
+			switch (this.accelerationDataSource) {
+			case _AccelerationDataSource.Value:
+				{
+					this._accelerationCalculus (Input.acceleration, Time.deltaTime);
+					break;
+				}
+			case _AccelerationDataSource.Events:
+				{
+					AccelerationEvent[] accelerationEvents = Input.accelerationEvents;
+					foreach (AccelerationEvent accelerationEvent in accelerationEvents) {
+						this._accelerationCalculus (accelerationEvent.acceleration, accelerationEvent.deltaTime);
+					}
+					break;
+				}
+			}
+		}
 		this.transform.localPosition = this.displacement;
+	}
+
+	void _accelerationCalculus(Vector3 acceleration, float deltaTime) {
+
+		Vector3 velocity = Vector3.zero;
+		acceleration *= this.gyroGravity.magnitude;
+		acceleration -= this.gyroGravity;
+
+		acceleration.x *= -1;
+		acceleration.y *= -1;
+
+		if (acceleration.magnitude > this.AccelerationThreshold) {
+			if (this._useAvg) {
+				velocity = this.velocity + (this.acceleration + acceleration) / 2 * deltaTime;
+			} else {
+				velocity = this.velocity + acceleration * Time.deltaTime;
+			}
+		} else {
+			acceleration = Vector3.zero;
+		}
+
+		if (velocity.magnitude > this.VelocityThreshold) {
+			if (this._useAvg) {
+				this.displacement += (this.velocity + velocity) / 2 * deltaTime;
+			} else {
+				this.displacement += this.velocity * deltaTime;
+			}
+		} else {
+			velocity = Vector3.zero;
+		}
+
+		this.acceleration = acceleration;
+		this.velocity = velocity;
 	}
 
     void _updateRealCamera() {
@@ -291,7 +346,7 @@ public class VirtualCameraController : MonoBehaviour {
 		var webCamAspect = ((float)this.webCamTexture.width) / ((float)this.webCamTexture.height);
 		if (videoRotationAngle % 180 == 90)
         {
-            Camera camera = this.GetComponent<Camera>();
+			Camera camera = Camera.main;
 			Debug.Log (" @ VirtualCameraController._updateRealCamera(): camera.aspect: " + camera.aspect);
 			this.WebCamImage.rectTransform.localScale = new Vector3(xScaleFactor / camera.aspect / webCamAspect, camera.aspect * webCamAspect , 1);
 			Debug.Log (" @ VirtualCameraController._updateRealCamera(): localScale: " + this.WebCamImage.rectTransform.localScale.ToString());

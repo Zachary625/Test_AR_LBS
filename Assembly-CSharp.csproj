@@ -46,8 +46,8 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\Scripts\VirtualCamera\GimbalController.cs" />
+     <Compile Include="Assets\Scripts\VirtualCamera\VirtualAccelerometerController.cs" />
      <Compile Include="Assets\Scripts\VirtualCamera\VirtualCameraController.cs" />
-     <Compile Include="Assets\Scripts\VirtualCamera\VirtualCompassController.cs" />
      <Compile Include="Assets\Scripts\VirtualCamera\VirtualTerrainController.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
