@@ -62,8 +62,8 @@ public class VirtualCameraController : MonoBehaviour {
 
 	private enum _AccelerationDataSource
 	{
-		Value,
-		Events,
+        Events,
+        Value,
 		Length,
 	}
 
@@ -73,7 +73,6 @@ public class VirtualCameraController : MonoBehaviour {
 	private _AccelerationDataSource accelerationDataSource;
 
 	private bool _useDisplacement = true;
-	private bool _useWebCam = true;
 
 	// Use this for initialization
 	void Start () {
@@ -191,14 +190,6 @@ public class VirtualCameraController : MonoBehaviour {
 //            this.rotationMethod = (_RotationMethod)(((int)(this.rotationMethod + 1)) % ((int)(_RotationMethod.Length)));
 //		}
 
-		if(GUI.Button(new Rect(0, height *(row++),200, height), "AR: " + this._useWebCam, normalText)) {
-			this._useWebCam = !this._useWebCam;
-			if (this._useWebCam) {
-				this._showWebCam ();
-			} else {
-				this._hideWebCam ();
-			}
-		}
 		if(GUI.Button(new Rect(0, height *(row++),200, height), "D: " + this._useDisplacement, normalText)) {
 			this.acceleration = Vector3.zero;
 			this.velocity = Vector3.zero;
@@ -264,6 +255,8 @@ public class VirtualCameraController : MonoBehaviour {
 		if (this.gyroscope != null) {
 			this.gyroAttitude = this.gyroscope.attitude;
 			this.gyroGravity = this.gyroscope.gravity;
+
+            this.gyroGravity.z *= -1;
 		}
 		if (this.gps != null) {
 			if(this.gps.status == LocationServiceStatus.Running) {
@@ -320,13 +313,13 @@ public class VirtualCameraController : MonoBehaviour {
 	void _accelerationCalculus(Vector3 acceleration, float deltaTime) {
 
 		Vector3 velocity = Vector3.zero;
-		acceleration *= this.gyroGravity.magnitude;
-		acceleration -= this.gyroGravity;
-		acceleration *= this.GravityMagnitude;
-		acceleration.x *= -1;
-		acceleration.y *= -1;
 
-		if (acceleration.magnitude / this.GravityMagnitude > this.AccelerationThreshold) {
+        acceleration -= this.gyroGravity;
+		acceleration *= this.GravityMagnitude;
+
+        acceleration = -acceleration;
+
+        if (acceleration.magnitude / this.GravityMagnitude > this.AccelerationThreshold) {
 			if (this._useAvg) {
 				velocity = this.velocity + (this.acceleration + acceleration) / 2 * deltaTime;
 			} else {
