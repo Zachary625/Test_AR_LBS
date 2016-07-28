@@ -10,7 +10,7 @@ public class VirtualAccelerometerController : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		this.lineRenderer = this.GetComponent<LineRenderer> ();
-		this.lineRenderer.useWorldSpace = false;
+		this.lineRenderer.useWorldSpace = true;
 		this.lineRenderer.SetVertexCount (2);
 		this.lineRenderer.SetWidth (0.01f, 0.01f);
 	}
@@ -21,7 +21,7 @@ public class VirtualAccelerometerController : MonoBehaviour {
 			return;
 		}
 		VirtualCameraController vcc = DataSource.GetComponent<VirtualCameraController> ();
-		this.lineRenderer.SetPosition (0, Vector3.zero);
-		this.lineRenderer.SetPosition (1, vcc.Velocity.normalized * 3);
+		this.lineRenderer.SetPosition (0, this.transform.position);
+		this.lineRenderer.SetPosition (1, this.transform.position + vcc.Gravity);
 	}
 }
