@@ -313,11 +313,12 @@ public class VirtualCameraController : MonoBehaviour {
 	void _accelerationCalculus(Vector3 acceleration, float deltaTime) {
 
 		Vector3 velocity = Vector3.zero;
-
+		acceleration.z *= -1;
         acceleration -= this.gyroGravity;
 		acceleration *= this.GravityMagnitude;
 
-        acceleration = -acceleration;
+		acceleration.x *= -1;
+		acceleration.y *= -1;
 
         if (acceleration.magnitude / this.GravityMagnitude > this.AccelerationThreshold) {
 			if (this._useAvg) {
