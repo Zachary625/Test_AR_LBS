@@ -63,8 +63,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\Scenary\HumpbackWhale\HumpbackWhaleController.cs" />
     <Compile Include="Assets\Scripts\VirtualCamera\GimbalController.cs" />
-    <Compile Include="Assets\Scripts\VirtualCamera\VirtualAccelerometerController.cs" />
+    <Compile Include="Assets\Scripts\VirtualCamera\GravityPointer.cs" />
     <Compile Include="Assets\Scripts\VirtualCamera\VirtualCameraController.cs" />
     <Compile Include="Assets\Scripts\VirtualCamera\VirtualTerrainController.cs" />
   </ItemGroup>
