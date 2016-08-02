@@ -67,12 +67,10 @@ public class VirtualCameraController : MonoBehaviour {
 		Length,
 	}
 
-	private bool _useAvg = true;
-
     private _RotationMethod rotationMethod;
 	private _AccelerationDataSource accelerationDataSource;
 
-	private bool _useDisplacement = true;
+	public bool EnableDisplacement = false;
 
 	// Use this for initialization
 	void Start () {
@@ -190,14 +188,7 @@ public class VirtualCameraController : MonoBehaviour {
 //            this.rotationMethod = (_RotationMethod)(((int)(this.rotationMethod + 1)) % ((int)(_RotationMethod.Length)));
 //		}
 
-		if(GUI.Button(new Rect(0, height *(row++),200, height), "D: " + this._useDisplacement, normalText)) {
-			this.acceleration = Vector3.zero;
-			this.velocity = Vector3.zero;
-			this.displacement = Vector3.zero;
-			this._useDisplacement = !this._useDisplacement;
-		}
-
-		if (this._useDisplacement) {
+		if (this.EnableDisplacement) {
 			if(GUI.Button(new Rect(0, height *(row++),200, height), this.accelerationDataSource.ToString(), normalText)) {
 				this.acceleration = Vector3.zero;
 				this.velocity = Vector3.zero;
@@ -221,27 +212,25 @@ public class VirtualCameraController : MonoBehaviour {
 			GUI.Label (new Rect (0, height * (row++), 500, height), "NO G!!!", normalText);
 		}
 
-		if (this.acceleration != Vector3.zero) {
-			GUI.Label (new Rect (0, height * (row++), 500, height), "A: " + this.acceleration.magnitude + ": " + this._vector3ToString (this.acceleration), this.acceleration.magnitude > 1? bigText: normalText);
-		} else {
-			GUI.Label (new Rect (0, height * (row++), 500, height), "NO A!!!", normalText);
+		if (this.EnableDisplacement) {
+			if (this.acceleration != Vector3.zero) {
+				GUI.Label (new Rect (0, height * (row++), 500, height), "A: " + this.acceleration.magnitude + ": " + this._vector3ToString (this.acceleration), this.acceleration.magnitude > 1? bigText: normalText);
+			} else {
+				GUI.Label (new Rect (0, height * (row++), 500, height), "NO A!!!", normalText);
+			}
+
+			if (this.velocity != Vector3.zero) {
+				GUI.Label (new Rect (0, height * (row++), 500, height), "V: " + this.velocity.magnitude + ": " + this._vector3ToString (this.velocity));
+			} else {
+				GUI.Label (new Rect (0, height * (row++), 500, height), "NO V!!!", normalText);
+			}
+
+			if (this.displacement != Vector3.zero) {
+				GUI.Label (new Rect(0, height * (row++), 500, height), "D: "+ this.displacement.magnitude + ": " + this._vector3ToString(this.displacement));
+			} else {
+				GUI.Label (new Rect (0, height * (row++), 500, height), "NO D!!!", normalText);
+			}
 		}
-
-		if (this.velocity != Vector3.zero) {
-			GUI.Label (new Rect (0, height * (row++), 500, height), "V: " + this.velocity.magnitude + ": " + this._vector3ToString (this.velocity));
-		} else {
-			GUI.Label (new Rect (0, height * (row++), 500, height), "NO V!!!", normalText);
-		}
-
-		if (this.displacement != Vector3.zero) {
-			GUI.Label (new Rect(0, height * (row++), 500, height), "D: "+ this.displacement.magnitude + ": " + this._vector3ToString(this.displacement));
-		} else {
-			GUI.Label (new Rect (0, height * (row++), 500, height), "NO D!!!", normalText);
-		}
-
-
-//		GUI.Label (new Rect (0, height *(row++), 500, height), "cameraRotation: " + this._quaternionToString(this.cameraRotation));
-//
 	}
 
 	void _updateVirtualCamera() {
@@ -290,7 +279,7 @@ public class VirtualCameraController : MonoBehaviour {
 	}
 
 	void _updateLocation() {
-		if (SystemInfo.supportsAccelerometer && this._useDisplacement) {
+		if (SystemInfo.supportsAccelerometer && this.EnableDisplacement) {
 			switch (this.accelerationDataSource) {
 			case _AccelerationDataSource.Value:
 				{
@@ -307,7 +296,7 @@ public class VirtualCameraController : MonoBehaviour {
 				}
 			}
 		}
-		this.transform.localPosition = this.displacement;
+		this.transform.parent.localPosition = this.displacement;
 	}
 
 	void _accelerationCalculus(Vector3 acceleration, float deltaTime) {
@@ -321,21 +310,13 @@ public class VirtualCameraController : MonoBehaviour {
 		acceleration.y *= -1;
 
         if (acceleration.magnitude / this.GravityMagnitude > this.AccelerationThreshold) {
-			if (this._useAvg) {
-				velocity = this.velocity + (this.acceleration + acceleration) / 2 * deltaTime;
-			} else {
-				velocity = this.velocity + acceleration * Time.deltaTime;
-			}
+			velocity = this.velocity + (this.acceleration + acceleration) / 2 * deltaTime;
 		} else {
 			acceleration = Vector3.zero;
 		}
 
 		if (velocity.magnitude > this.VelocityThreshold) {
-			if (this._useAvg) {
-				this.displacement += (this.velocity + velocity) / 2 * deltaTime;
-			} else {
-				this.displacement += this.velocity * deltaTime;
-			}
+			this.displacement += (this.velocity + velocity) / 2 * deltaTime;
 		} else {
 			velocity = Vector3.zero;
 		}
@@ -355,8 +336,6 @@ public class VirtualCameraController : MonoBehaviour {
 
         int videoRotationAngle = this.webCamTexture.videoRotationAngle;
 		bool videoVerticallyMirrored = this.webCamTexture.videoVerticallyMirrored;
-		Debug.Log(" @ VirtualCameraController._updateRealCamera(): videoRotationAngle: " + videoRotationAngle);
-		Debug.Log(" @ VirtualCameraController._updateRealCamera(): videoVerticallyMirrored: " + videoVerticallyMirrored);
 
 		int xScaleFactor = videoVerticallyMirrored ? -1 : 1;
 
@@ -364,9 +343,7 @@ public class VirtualCameraController : MonoBehaviour {
 		if (videoRotationAngle % 180 == 90)
         {
 			Camera camera = Camera.main;
-			Debug.Log (" @ VirtualCameraController._updateRealCamera(): camera.aspect: " + camera.aspect);
 			this.WebCamImage.rectTransform.localScale = new Vector3(xScaleFactor / camera.aspect / webCamAspect, camera.aspect * webCamAspect , 1);
-			Debug.Log (" @ VirtualCameraController._updateRealCamera(): localScale: " + this.WebCamImage.rectTransform.localScale.ToString());
         }
         else {
 			this.WebCamImage.rectTransform.localScale = new Vector3(xScaleFactor / webCamAspect, 1 * webCamAspect, 1);
