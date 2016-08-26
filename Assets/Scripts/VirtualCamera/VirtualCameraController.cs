@@ -70,6 +70,7 @@ public class VirtualCameraController : MonoBehaviour {
     private _RotationMethod rotationMethod;
 	private _AccelerationDataSource accelerationDataSource;
 
+	public bool ShowGravity = false;
 	public bool EnableDisplacement = false;
 
 	// Use this for initialization
@@ -206,10 +207,12 @@ public class VirtualCameraController : MonoBehaviour {
 //		GUI.Label (new Rect (0, height *(row++), 500, height), "compassTrueHeading: " + this.compassTrueHeading);
 //		GUI.Label (new Rect(0, height * (row++), 500, height), "compassRawVector: " + this.compassRawVector);
 
-		if (this.gyroGravity != Vector3.zero) {
-			GUI.Label (new Rect (0, height * (row++), 500, height), "G: " + this.gyroGravity.magnitude + ": " + this._vector3ToString (this.gyroGravity), this.gyroGravity.magnitude > 10? bigText: normalText);
-		} else {
-			GUI.Label (new Rect (0, height * (row++), 500, height), "NO G!!!", normalText);
+		if (this.ShowGravity) {
+			if (this.gyroGravity != Vector3.zero) {
+				GUI.Label (new Rect (0, height * (row++), 500, height), "G: " + this.gyroGravity.magnitude + ": " + this._vector3ToString (this.gyroGravity), this.gyroGravity.magnitude > 10? bigText: normalText);
+			} else {
+				GUI.Label (new Rect (0, height * (row++), 500, height), "NO G!!!", normalText);
+			}
 		}
 
 		if (this.EnableDisplacement) {
